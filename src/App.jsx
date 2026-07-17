@@ -9,7 +9,8 @@ const METRICS = [
   { key: 'cleanlinessRating', label: 'Cleanliness', short: 'Cleanliness' },
 ];
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://core-fitness-b.onrender.com';
+// FIXED: Automatically targets your local server (port 5000) when developing locally, and Render when in production
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://core-fitness-b.onrender.com');
 const TARGET_PRODUCTION_URL = 'https://core-fitness-lac.vercel.app/';
 
 function StarIcon({ filled, size = 18 }) {
@@ -282,7 +283,6 @@ export default function App() {
         if (data.success) {
           setReviews(data.data);
 
-          // Your updated persistence logic integration point
           const phone = localStorage.getItem("review_phone");
           if (!phone) return;
 
@@ -462,4 +462,4 @@ export default function App() {
       )}
     </div>
   );
-}
+} 
