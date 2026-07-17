@@ -1,0 +1,580 @@
+/* ==========================================================
+   FitReview — Design Tokens
+   Aesthetic: bright, high-contrast "gym scoreboard" —
+   condensed poster type for numbers/headlines, coral accent
+   instead of a literal Google blue, warm gold stars.
+   ========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #ffffff;
+  --surface: #f5f6f8;
+  --surface-strong: #eef0f3;
+  --line: #e3e5ea;
+
+  --ink: #14171a;
+  --ink-soft: #5b6169;
+  --ink-faint: #8a909a;
+
+  --accent: #ff4433;       /* volt coral — intensity / heart-rate */
+  --accent-dark: #d5301f;
+  --accent-tint: #fff1ef;
+
+  --gold: #f5a623;
+  --gold-empty: #e2e4e9;
+
+  --local-badge: #1e9e6b;
+  --local-badge-tint: #eafaf3;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(20, 23, 26, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 23, 26, 0.08);
+  --shadow-lift: 0 10px 30px rgba(20, 23, 26, 0.12);
+
+  --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  font-family: var(--font-body);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button, input, textarea {
+  font-family: inherit;
+}
+
+/* ---------- App shell ---------- */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.app-main {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 1.25rem 4rem;
+  flex: 1;
+}
+
+/* ---------- Two-column layout: form (left) / feed (right) ---------- */
+
+.layout-grid {
+  max-width: 1080px;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.layout-left {
+  position: sticky;
+  top: 24px;
+}
+
+.layout-right {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .app-main.layout-grid {
+    max-width: 640px;
+    grid-template-columns: 1fr;
+  }
+  .layout-left {
+    position: static;
+  }
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  width: 100%;
+  text-align: center;
+  padding: 4rem 1.25rem 1.75rem;
+  background:
+    radial-gradient(circle at 50% 0%, var(--accent-tint) 0%, rgba(255,255,255,0) 60%);
+}
+
+.hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  line-height: 0.95;
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: 0.5px;
+}
+
+.hero__title em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+/* ---------- Panels (shared card shell) ---------- */
+
+.panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Scoreboard (RatingSummary signature element) ---------- */
+
+.scoreboard {
+  padding: 1.5rem 1.5rem 1.25rem;
+  margin: 0 0 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.scoreboard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+
+.scoreboard__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.scoreboard__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0;
+}
+
+.scoreboard__count {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+
+.scoreboard__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .scoreboard__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.scoreboard__item { min-width: 0; }
+
+.scoreboard__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.scoreboard__label {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.scoreboard__value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.scoreboard__value small {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  margin-left: 2px;
+}
+
+.scoreboard__bar {
+  width: 100%;
+  height: 6px;
+  background: var(--surface-strong);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.scoreboard__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scoreboard__empty {
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0 0.25rem;
+}
+
+/* ---------- Form ---------- */
+
+.review-form {
+  padding: 1.75rem;
+  margin: 0 0 2.25rem;
+}
+
+.review-form__eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 0.35rem;
+}
+
+.review-form__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.03em;
+  margin: 0 0 0.4rem;
+  color: var(--ink);
+}
+
+.review-form__subtitle {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  margin: 0 0 1.25rem;
+  line-height: 1.4;
+}
+
+.star-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.2rem 0.6rem;
+  margin-bottom: 1.4rem;
+}
+
+.star-field {
+  margin-bottom: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.star-field__label {
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.star-row {
+  display: flex;
+  gap: 3px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  line-height: 0;
+  transition: transform 0.12s ease;
+}
+
+.star-btn:hover {
+  transform: scale(1.12);
+}
+
+.star-btn:active {
+  transform: scale(0.95);
+}
+
+.field {
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  outline: none;
+}
+
+.field::placeholder {
+  color: var(--ink-faint);
+}
+
+textarea.field {
+  height: 100px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 0.85rem;
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dark);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  background: var(--ink-faint);
+  cursor: not-allowed;
+}
+
+.form-error {
+  color: var(--accent-dark);
+  background: var(--accent-tint);
+  border: 1px solid #ffd4cf;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+/* ---------- Review feed ---------- */
+
+.feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1.5rem;
+  margin-bottom: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.feed-header__title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+  margin: 1.25rem 0 0;
+}
+
+.feed-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--ink-faint);
+}
+
+/* ---------- Review card ---------- */
+
+.review-card {
+  padding: 1.4rem 0;
+  border-bottom: 1px solid var(--line);
+  animation: card-in 0.35s ease both;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.review-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+
+.review-card__avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: var(--surface-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.review-card__name {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.review-card__date {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.badge-local {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--local-badge);
+  background: var(--local-badge-tint);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.badge-pending {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  background: var(--surface-strong);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  animation: pulse-fade 1.1s ease-in-out infinite;
+}
+
+@keyframes pulse-fade {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.offline-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-dark);
+  background: var(--accent-tint);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.review-card__comment {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0 0 1rem;
+}
+
+.review-card__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1.25rem;
+  background: var(--surface);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 420px) {
+  .review-card__metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.review-card__metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.review-card__metric span:first-child {
+  color: var(--ink-faint);
+}
+
+/* ---------- Skeleton loaders (initial fetch, avoids empty/flash states) ---------- */
+
+.review-card--skeleton {
+  animation: none;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-strong) 25%, var(--surface) 50%, var(--surface-strong) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton--circle {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+}
+
+.skeleton--line {
+  height: 12px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ---------- Responsive tuning ---------- */
+
+@media (max-width: 480px) {
+  .app-main { padding: 0 1rem 3rem; }
+  .review-form { padding: 1.35rem; }
+  .scoreboard { padding: 1.25rem 1.15rem 1rem; }
+  .star-field { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+}
