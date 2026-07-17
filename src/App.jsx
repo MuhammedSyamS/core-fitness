@@ -9,25 +9,23 @@ const METRICS = [
   { key: 'cleanlinessRating', label: 'Facility Cleanliness', short: 'Cleanliness' },
 ];
 
+// Handles fallback smoothly between production deployment environments and local dev machines
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // ==========================================
-// SHARED: EXACT GOOGLE MAPS SVG STAR
+// SHARED: SVG STAR 
 // ==========================================
 function StarIcon({ filled, size = 20 }) {
   return (
     <svg
-      viewBox="0 0 24 24"
       width={size}
       height={size}
-      style={{ 
-        display: 'block', 
-        transition: 'fill 0.1s ease' 
-      }}
+      viewBox="0 0 24 24"
+      fill={filled ? 'var(--gold)' : 'var(--gold-empty)'}
+      style={{ display: 'block', transition: 'fill 0.1s ease' }}
       aria-hidden="true"
     >
-      <path 
-        d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z" 
-        fill={filled ? 'var(--gold)' : 'var(--gold-empty)'} 
-      />
+      <path d="M12 2.5l2.95 6.28 6.93.68-5.19 4.73 1.5 6.81L12 17.77l-6.19 3.23 1.5-6.81-5.19-4.73 6.93-.68z" />
     </svg>
   );
 }
@@ -43,12 +41,12 @@ function StaticStars({ value, size = 15 }) {
 }
 
 // ==========================================
-// 1. HERO
+// 1. HERO (Clean Centered Heading - No Buttons)
 // ==========================================
-function Hero() {
+function Hero({ onViewChange }) {
   return (
-    <div className="hero">
-      <h1 className="hero__title">
+    <div className="hero" style={{ padding: '3rem 1.25rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <h1 className="hero__title" style={{ cursor: 'pointer', margin: 0 }} onClick={() => { onViewChange('home'); window.history.pushState({}, '', '/'); }}>
         Core <em>Fitness</em>
       </h1>
     </div>
@@ -96,15 +94,15 @@ function RatingSummary({ reviews }) {
 }
 
 // ==========================================
-// 4. INTERACTIVE STAR SELECTOR (FIXED FOR UNDER LABELS)
+// 4. INTERACTIVE STAR SELECTOR
 // ==========================================
 function StarRatingInput({ label, value, onChange }) {
   const [hoverValue, setHoverValue] = useState(null);
 
   return (
     <div className="star-field" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.4rem', width: '100%', marginBottom: '1.2rem' }}>
-      <span className="star-field__label" style={{ display: 'block', margin: 0 }}>{label}</span>
-      <div className="star-row" style={{ display: 'flex', gap: '4px', alignItems: 'center' }} onMouseLeave={() => setHoverValue(null)}>
+      <span className="star-field__label">{label}</span>
+      <div className="star-row" onMouseLeave={() => setHoverValue(null)}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             type="button"
@@ -112,27 +110,31 @@ function StarRatingInput({ label, value, onChange }) {
             className="star-btn"
             aria-label={`${label}: ${star} star${star === 1 ? '' : 's'}`}
             onClick={(e) => {
-              e.preventDefault(); 
+              e.preventDefault();
               onChange(star);
             }}
             onMouseEnter={() => setHoverValue(star)}
-            style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer' }}
           >
             <StarIcon filled={star <= (hoverValue || value)} size={26} />
           </button>
         ))}
-        <span style={{ fontSize: '0.8rem', color: 'var(--ink-faint)', marginLeft: '0.5rem', fontWeight: '600' }}>
-          ({value}/5)
-        </span>
       </div>
     </div>
   );
 }
 
 // ==========================================
-// 5. REVIEW FORM
+// 5. MAIN APP INTERFACE
 // ==========================================
-function ReviewForm({ onReviewAdded, onReviewConfirmed, onReviewFailed }) {
+export default function App() {
+  const [reviews, setReviews] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState('home'); 
+  const [adminKey, setAdminKey] = useState('');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [isOffline, setIsOffline] = useState(false);
+
   const initialState = {
     username: '',
     comment: '',
@@ -142,7 +144,25 @@ function ReviewForm({ onReviewAdded, onReviewConfirmed, onReviewFailed }) {
     cleanlinessRating: 0,
   };
   const [formData, setFormData] = useState(initialState);
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    // Detects if the admin explicitly typed /admin into the browser bar
+    if (window.location.pathname === '/admin') {
+      setView('admin');
+    }
+    
+    fetch(`${API_BASE_URL}/api/reviews`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Network failure');
+        return res.json();
+      })
+      .then((json) => { 
+        if (json.success) setReviews(json.data); 
+      })
+      .catch(() => setIsOffline(true))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const handleRatingChange = (metricName, ratingValue) => {
     setFormData((prev) => ({ ...prev, [metricName]: ratingValue }));
@@ -152,19 +172,53 @@ function ReviewForm({ onReviewAdded, onReviewConfirmed, onReviewFailed }) {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
-    setError('');
+    setLoginError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/reviews/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsAdminAuthenticated(true);
+      } else {
+        setLoginError('Invalid secret credentials token.');
+      }
+    } catch {
+      setLoginError('Authentication server unreachable.');
+    }
+  };
+
+  const handleDeleteReview = async (id) => {
+    if (!window.confirm('Purge this comment entry permanently from the logs?')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/reviews/admin/delete/${id}`, {
+        method: 'DELETE',
+        headers: { 'admin-key': adminKey }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReviews(prev => prev.filter(r => r._id !== id));
+      }
+    } catch (err) { 
+      alert('Delete transaction rejected by database.'); 
+    }
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setFormError('');
 
     if (!formData.username.trim() || !formData.comment.trim()) {
-      setError('Please add your name and a comment before posting.');
-      return;
+      return setFormError('Please add your name and a comment before posting.');
     }
 
-    const unratedMetric = METRICS.find(({ key }) => !formData[key]);
+    const unratedMetric = METRICS.find(({ key }) => formData[key] === 0);
     if (unratedMetric) {
-      setError(`Please rate "${unratedMetric.label}" before posting.`);
-      return;
+      return setFormError(`Please rate "${unratedMetric.label}" before posting.`);
     }
 
     const tempId = `temp-${Date.now()}`;
@@ -175,212 +229,155 @@ function ReviewForm({ onReviewAdded, onReviewConfirmed, onReviewFailed }) {
       isPending: true,
     };
 
-    onReviewAdded(optimisticReview);
+    const payloadToSend = { ...formData };
+
+    setReviews((prev) => [optimisticReview, ...prev]);
     setFormData(initialState);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reviews`, {
+      const res = await fetch(`${API_BASE_URL}/api/reviews`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payloadToSend),
       });
+      
       const data = await res.json();
-      if (data.success) {
-        onReviewConfirmed(tempId, data.data);
+      
+      if (res.ok && data.success) {
+        setReviews((prev) => prev.map((r) => (r._id === tempId ? data.data : r)));
+        setIsOffline(false);
       } else {
-        onReviewFailed(tempId);
+        setFormError(data.message || 'Submission rejected by server.');
+        setReviews((prev) => prev.map((r) => (r._id === tempId ? { ...r, isPending: false, isLocalOnly: true } : r)));
       }
     } catch (err) {
-      onReviewFailed(tempId);
+      setFormError('Network connection loss. Retained entry locally.');
+      setReviews((prev) => prev.map((r) => (r._id === tempId ? { ...r, isPending: false, isLocalOnly: true } : r)));
     }
   };
 
   return (
-    <form className="panel review-form" onSubmit={handleSubmit}>
-      <span className="review-form__eyebrow">Customer Reviews</span>
-      <h3 className="review-form__title">Write your feedback about us</h3>
-      <p className="review-form__subtitle">Tell us how your session went — it helps other members choose right.</p>
-
-      {error && <div className="form-error">{error}</div>}
-
-      <div className="star-panel">
-        {METRICS.map(({ key, label }) => (
-          <StarRatingInput
-            key={key}
-            label={label}
-            value={formData[key]}
-            onChange={(val) => handleRatingChange(key, val)}
-          />
-        ))}
-      </div>
-
-      <input
-        type="text"
-        name="username"
-        placeholder="Your name"
-        value={formData.username}
-        onChange={handleTextChange}
-        className="field"
-        required
-      />
-
-      <textarea
-        name="comment"
-        placeholder="Share details of your experience at this fitness center..."
-        value={formData.comment}
-        onChange={handleTextChange}
-        className="field"
-        required
-      />
-
-      <button type="submit" className="btn-primary">
-        Post review
-      </button>
-    </form>
-  );
-}
-
-// ==========================================
-// 6. REVIEW CARD
-// ==========================================
-function ReviewCard({ review }) {
-  const {
-    username,
-    comment,
-    coachRating,
-    atmosphereRating,
-    equipmentRating,
-    cleanlinessRating,
-    createdAt,
-    isPending,
-    isLocalOnly,
-  } = review;
-
-  const metricValues = {
-    coachRating,
-    atmosphereRating,
-    equipmentRating,
-    cleanlinessRating,
-  };
-
-  return (
-    <div className="review-card">
-      <div className="review-card__head">
-        <div className="review-card__avatar">{username ? username.charAt(0).toUpperCase() : 'A'}</div>
-        <div>
-          <h4 className="review-card__name">
-            {username}
-            {isPending && <span className="badge-pending">Posting…</span>}
-            {!isPending && isLocalOnly && <span className="badge-local">Saved locally</span>}
-          </h4>
-          <span className="review-card__date">{new Date(createdAt).toLocaleDateString()}</span>
-        </div>
-      </div>
-
-      <p className="review-card__comment">{comment}</p>
-
-      <div className="review-card__metrics">
-        {METRICS.map(({ key, short }) => (
-          <div className="review-card__metric" key={key}>
-            <span>{short}</span>
-            <StaticStars value={metricValues[key]} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ReviewSkeleton() {
-  return (
-    <div className="review-card review-card--skeleton" aria-hidden="true">
-      <div className="review-card__head">
-        <div className="skeleton skeleton--circle" />
-        <div style={{ flex: 1 }}>
-          <div className="skeleton skeleton--line" style={{ width: '40%' }} />
-          <div className="skeleton skeleton--line" style={{ width: '25%', marginTop: 6 }} />
-        </div>
-      </div>
-      <div className="skeleton skeleton--line" style={{ width: '95%', marginTop: 14 }} />
-      <div className="skeleton skeleton--line" style={{ width: '80%', marginTop: 8 }} />
-    </div>
-  );
-}
-
-// ==========================================
-// 7. MAIN APP
-// ==========================================
-export default function App() {
-  const [reviews, setReviews] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-  fetch(`${import.meta.env.VITE_API_URL}/api/reviews`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (cancelled) return;
-        if (json.success) setReviews(json.data);
-      })
-      .catch(() => {
-        if (!cancelled) setIsOffline(true);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleReviewAdded = (newReview) => {
-    setReviews((prev) => [newReview, ...prev]);
-  };
-
-  const handleReviewConfirmed = (tempId, serverReview) => {
-    setReviews((prev) => prev.map((r) => (r._id === tempId ? serverReview : r)));
-  };
-
-  const handleReviewFailed = (tempId) => {
-    setReviews((prev) => prev.map((r) => (r._id === tempId ? { ...r, isPending: false, isLocalOnly: true } : r)));
-  };
-
-  return (
     <div className="app-shell">
-      <Hero />
+      <Hero view={view} onViewChange={setView} />
 
-      <div className="app-main layout-grid">
-        <div className="layout-left">
-          <ReviewForm
-            onReviewAdded={handleReviewAdded}
-            onReviewConfirmed={handleReviewConfirmed}
-            onReviewFailed={handleReviewFailed}
-          />
+      {view === 'admin' && !isAdminAuthenticated ? (
+        <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem' }} className="panel">
+          <form onSubmit={handleAdminLogin}>
+            <h3 style={{ margin: '0 0 1rem 0' }}>Admin Verification Required</h3>
+            {loginError && <p style={{ color: 'var(--accent)', fontSize: '0.85rem' }}>{loginError}</p>}
+            <input type="password" placeholder="Enter ADMIN_SECRET_KEY" value={adminKey} onChange={(e) => setAdminKey(e.target.value)} className="field" required />
+            <button type="submit" className="btn-primary">Authenticate</button>
+          </form>
         </div>
+      ) : (
+        <div className="app-main layout-grid" style={{ marginTop: '1rem' }}>
+          
+          <div className="layout-left">
+            {view === 'admin' ? (
+              <div className="panel" style={{ padding: '2rem', background: 'var(--accent-tint)', border: '1px solid var(--accent)' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-dark)' }}>Admin System Active</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--ink-soft)' }}>You are authenticated. You can now delete any member review directly from the active log stream below.</p>
+                <button className="btn-primary" style={{ background: 'var(--ink)' }} onClick={() => { setIsAdminAuthenticated(false); setAdminKey(''); setView('home'); window.history.pushState({}, '', '/'); }}>Logout Session</button>
+              </div>
+            ) : (
+              <form className="panel review-form" onSubmit={handleFormSubmit}>
+                <span className="review-form__eyebrow">Customer Reviews</span>
+                <h3 className="review-form__title">Write your feedback about us</h3>
+                <p className="review-form__subtitle">Tell us how your session went — it helps other members choose right.</p>
 
-        <div className="layout-right">
-          <RatingSummary reviews={reviews} />
+                {formError && <div className="form-error">{formError}</div>}
 
-          <div className="feed-header">
-            <h3 className="feed-header__title">All reviews ({reviews.length})</h3>
-            {isOffline && <span className="offline-pill">Offline mode</span>}
+                <div className="star-panel">
+                  {METRICS.map(({ key, label }) => (
+                    <StarRatingInput
+                      key={key}
+                      label={label}
+                      value={formData[key]}
+                      onChange={(val) => handleRatingChange(key, val)}
+                    />
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="Your name"
+                  value={formData.username}
+                  onChange={handleTextChange}
+                  className="field"
+                  required
+                />
+
+                <textarea
+                  name="comment"
+                  placeholder="Share details of your experience at this fitness center..."
+                  value={formData.comment}
+                  onChange={handleTextChange}
+                  className="field"
+                  required
+                />
+
+                <button type="submit" className="btn-primary">
+                  Post review
+                </button>
+              </form>
+            )}
           </div>
 
-          {isLoading ? (
-            <>
-              <ReviewSkeleton />
-              <ReviewSkeleton />
-            </>
-          ) : reviews.length === 0 ? (
-            <div className="feed-empty">No reviews yet — be the first to share your experience.</div>
-          ) : (
-            reviews.map((review) => <ReviewCard key={review._id} review={review} />)
-          )}
+          <div className="layout-right">
+            <RatingSummary reviews={reviews} />
+
+            <div className="feed-header">
+              <h3 className="feed-header__title">All reviews ({reviews.length})</h3>
+              {isOffline && <span className="offline-pill">Offline mode</span>}
+            </div>
+
+            {isLoading ? (
+              <p>Syncing metrics...</p>
+            ) : reviews.length === 0 ? (
+              <div className="feed-empty">No reviews yet — be the first to share your experience.</div>
+            ) : (
+              reviews.map((review) => (
+                <div className="review-card" key={review._id}>
+                  <div className="review-card__head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div className="review-card__avatar">{review.username ? review.username.charAt(0).toUpperCase() : 'A'}</div>
+                      <div>
+                        <h4 className="review-card__name">
+                          {review.username}
+                          {review.isPending && <span className="badge-pending">Posting…</span>}
+                          {!review.isPending && review.isLocalOnly && <span className="badge-local">Saved locally</span>}
+                        </h4>
+                        <span className="review-card__date">{new Date(review.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    {view === 'admin' && isAdminAuthenticated && (
+                      <button onClick={() => handleDeleteReview(review._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: '1.2rem' }} title="Purge entry">
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="review-card__comment">{review.comment}</p>
+
+                  <div className="review-card__metrics">
+                    {METRICS.map(({ key, short }) => (
+                      <div className="review-card__metric" key={key}>
+                        <span>{short}</span>
+                        <StaticStars value={review[key]} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
         </div>
-      </div>
+      )}
     </div>
   );
 }
