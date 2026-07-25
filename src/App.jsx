@@ -139,32 +139,119 @@ function Hero() {
 }
 
 function RatingSummary({ reviews }) {
-  if (reviews.length === 0) return null;
+  if (reviews.length === 0) {
+    return (
+      <div className="panel scoreboard" style={{ width: '100%', marginBottom: '2rem', padding: '2rem', textAlign: 'center' }}>
+        <h4 className="scoreboard__title" style={{ marginBottom: '0.5rem' }}>Overall Metrics Summary</h4>
+        <p style={{ color: 'var(--ink-soft)', fontSize: '0.9rem' }}>No reviews submitted yet. Log data will show up here once reviews are added.</p>
+      </div>
+    );
+  }
+
   const getAvg = (key) => {
     const total = reviews.reduce((acc, curr) => acc + (Number(curr[key]) || 0), 0);
     return total / reviews.length;
   };
+
+  const reviewsWithAvg = reviews.map(r => {
+    const avg = (r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4;
+    return { ...r, avg };
+  });
+
+  const totalReviews = reviews.length;
+  const overallAvg = reviewsWithAvg.reduce((sum, r) => sum + r.avg, 0) / totalReviews;
+
+  const positiveReviews = reviewsWithAvg.filter(r => r.avg >= 4.0).length;
+  const satisfactionRate = totalReviews > 0 ? (positiveReviews / totalReviews) * 100 : 0;
+
+  const starCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  reviewsWithAvg.forEach(r => {
+    const rounded = Math.round(r.avg);
+    const key = rounded >= 5 ? 5 : rounded <= 1 ? 1 : rounded;
+    starCounts[key]++;
+  });
+
   return (
-    <div className="panel scoreboard" style={{ width: '100%', marginBottom: '2rem' }}>
-      <div className="scoreboard__header">
-        <h4 className="scoreboard__title">Overall Metrics Summary</h4>
-        <span className="scoreboard__count">{reviews.length} total entries</span>
+    <div className="panel scoreboard-enhanced" style={{ width: '100%', marginBottom: '2rem' }}>
+      <div className="scoreboard__header" style={{ borderBottom: '1px solid var(--line)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+        <div>
+          <h4 className="scoreboard__title" style={{ fontSize: '1.2rem', margin: 0 }}>Gym Analytics Dashboard</h4>
+          <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--ink-soft)' }}>Real-time student feedback statistics</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <span className="scoreboard__count" style={{ display: 'block', fontSize: '1.25rem', fontWeight: '800', color: 'var(--ink)' }}>{totalReviews}</span>
+          <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-faint)', fontWeight: '600' }}>Total Reviews</span>
+        </div>
       </div>
-      <div className="scoreboard__grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
-        {METRICS.map(({ key, short }) => {
-          const avg = getAvg(key);
-          return (
-            <div className="scoreboard__item" key={key} style={{ background: '#fdfdfd', padding: '0.75rem', borderRadius: '6px', border: '1px solid #f0f0f0' }}>
-              <div className="scoreboard__row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                <span className="scoreboard__label" style={{ fontWeight: '600', color: '#555' }}>{short}</span>
-                <span className="scoreboard__value" style={{ fontWeight: '700', color: 'var(--ink)' }}>{avg.toFixed(1)}<small style={{ fontSize: '0.7rem', color: '#999' }}>/5</small></span>
-              </div>
-              <div className="scoreboard__bar" style={{ height: '6px', background: '#eee', borderRadius: '3px', overflow: 'hidden' }}>
-                <div className="scoreboard__fill" style={{ width: `${(avg / 5) * 100}%`, height: '100%', background: 'var(--accent)' }} />
-              </div>
+
+      <div className="dashboard-grid">
+        <div className="dashboard-stats-row">
+          <div className="stat-card">
+            <span className="stat-label">Average Score</span>
+            <div className="stat-value-container">
+              <span className="stat-value">{overallAvg.toFixed(2)}</span>
+              <span className="stat-max">/5.0</span>
             </div>
-          );
-        })}
+            <div style={{ marginTop: '0.25rem' }}>
+              <StaticStars value={overallAvg} size={14} />
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <span className="stat-label">Satisfaction Rate</span>
+            <div className="stat-value-container">
+              <span className="stat-value" style={{ color: satisfactionRate >= 80 ? 'var(--local-badge)' : satisfactionRate >= 50 ? 'var(--gold)' : 'var(--accent)' }}>
+                {satisfactionRate.toFixed(0)}%
+              </span>
+            </div>
+            <span className="stat-subtext">Reviews scored 4.0+ stars</span>
+          </div>
+        </div>
+
+        <div className="dashboard-charts-grid">
+          <div className="charts-card">
+            <h5 className="charts-card-title">Performance by Category</h5>
+            <div className="scoreboard__grid" style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              {METRICS.map(({ key, label }) => {
+                const avg = getAvg(key);
+                return (
+                  <div className="scoreboard__item" key={key}>
+                    <div className="scoreboard__row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem', alignItems: 'center' }}>
+                      <span className="scoreboard__label" style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--ink-soft)' }}>{label}</span>
+                      <span className="scoreboard__value" style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>
+                        {avg.toFixed(1)} <span style={{ fontSize: '0.7rem', color: 'var(--ink-faint)', fontWeight: 'normal' }}>/5</span>
+                      </span>
+                    </div>
+                    <div className="scoreboard__bar" style={{ height: '6px', background: 'var(--surface-strong)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div className="scoreboard__fill" style={{ width: `${(avg / 5) * 100}%`, height: '100%', background: 'var(--accent)' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="charts-card">
+            <h5 className="charts-card-title">Score Distribution</h5>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {[5, 4, 3, 2, 1].map((stars) => {
+                const count = starCounts[stars];
+                const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                return (
+                  <div key={stars} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
+                    <span style={{ width: '48px', fontWeight: '600', color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {stars} ⭐
+                    </span>
+                    <div style={{ flexGrow: 1, height: '8px', background: 'var(--surface-strong)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: stars >= 4 ? 'var(--local-badge)' : stars === 3 ? 'var(--gold)' : 'var(--accent)', borderRadius: '4px', transition: 'width 0.5s ease' }} />
+                    </div>
+                    <span style={{ width: '28px', textAlign: 'right', fontWeight: '700', color: 'var(--ink-soft)' }}>{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -272,6 +359,11 @@ export default function App() {
   const [formData, setFormData] = useState(initialState);
   const [formError, setFormError] = useState('');
 
+  // Search, filtering and sorting states for the admin panel
+  const [searchTerm, setSearchTerm] = useState('');
+  const [ratingFilter, setRatingFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+
   useEffect(() => {
     if (window.location.pathname === '/admin') {
       setView('admin');
@@ -339,6 +431,371 @@ export default function App() {
       if (data.success) setReviews(prev => prev.filter(r => r._id !== id));
     } catch { alert('Delete transaction rejected.'); }
   };
+
+  const handleDeleteAllReviews = async () => {
+    const doubleCheck = window.confirm('🚨 WARNING: You are about to permanently delete ALL reviews from the database. This action is irreversible and cannot be undone. Are you sure you want to proceed?');
+    if (!doubleCheck) return;
+
+    const confirmationInput = window.prompt("Type 'DELETE ALL' in all caps to authorize the complete purge of the reviews database:");
+    if (confirmationInput !== 'DELETE ALL') {
+      alert("Purge cancelled. The confirmation code did not match.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/reviews/admin/delete-all`, {
+        method: 'DELETE',
+        headers: { 'admin-key': adminKey }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReviews([]);
+        alert("Success: All reviews have been purged from the database.");
+      } else {
+        alert(data.message || 'Purge all transaction rejected.');
+      }
+    } catch { 
+      alert('Delete all transaction failed due to connection error.'); 
+    }
+  };
+
+
+
+  const handleExportPDF = () => {
+    if (filteredAndSortedReviews.length === 0) {
+      alert("No review data matching the current filters to export.");
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to open the PDF report print preview.");
+      return;
+    }
+
+    const totalSubset = filteredAndSortedReviews.length;
+    const overallAvg = (filteredAndSortedReviews.reduce((sum, r) => sum + (r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4, 0) / totalSubset).toFixed(2);
+    const positiveReviews = filteredAndSortedReviews.filter(r => (r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4 >= 4.0).length;
+    const satisfactionRate = ((positiveReviews / totalSubset) * 100).toFixed(0);
+
+    const getCategoryAvg = (key) => {
+      const total = filteredAndSortedReviews.reduce((acc, curr) => acc + (Number(curr[key]) || 0), 0);
+      return total / totalSubset;
+    };
+
+    const coachAvg = getCategoryAvg('coachRating');
+    const atmosphereAvg = getCategoryAvg('atmosphereRating');
+    const equipmentAvg = getCategoryAvg('equipmentRating');
+    const cleanlinessAvg = getCategoryAvg('cleanlinessRating');
+
+    const getStars = (rating) => {
+      const rounded = Math.round(rating);
+      return '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
+    };
+
+    const reviewsHtml = filteredAndSortedReviews.map((r, i) => {
+      const avg = ((r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4).toFixed(2);
+      return `
+        <div class="review-item">
+          <div class="review-meta">
+            <span class="review-index">Review #${i + 1}</span>
+            <span class="review-user"><strong>${r.username}</strong> ${r.phone ? `(${r.phone})` : ''}</span>
+            <span class="review-date">${new Date(r.createdAt).toLocaleDateString()} ${new Date(r.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+          <div class="rating-scores">
+            <span>Coaches: <strong class="stars">${getStars(r.coachRating)}</strong> <small>(${r.coachRating}/5)</small></span> | 
+            <span>Atmosphere: <strong class="stars">${getStars(r.atmosphereRating)}</strong> <small>(${r.atmosphereRating}/5)</small></span> | 
+            <span>Equipment: <strong class="stars">${getStars(r.equipmentRating)}</strong> <small>(${r.equipmentRating}/5)</small></span> | 
+            <span>Cleanliness: <strong class="stars">${getStars(r.cleanlinessRating)}</strong> <small>(${r.cleanlinessRating}/5)</small></span> | 
+            <span class="avg-badge">Average: <strong>${avg}/5</strong></span>
+          </div>
+          <div class="review-comment">
+            ${r.comment ? r.comment.trim() : '<em class="no-comment">No comment provided.</em>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Core Fitness - Reviews Report</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            padding: 40px;
+            background: #fff;
+            margin: 0;
+          }
+          .header {
+            border-bottom: 2px solid #ff4433;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .title h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #0f172a;
+            font-weight: 800;
+          }
+          .title p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: #64748b;
+          }
+          .report-info {
+            text-align: right;
+            font-size: 13px;
+            color: #64748b;
+          }
+          .summary-cards {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+          .card {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8fafc;
+            text-align: center;
+          }
+          .card-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 5px;
+          }
+          .card-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            font-weight: 600;
+          }
+          .print-category-section {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8fafc;
+            margin-bottom: 30px;
+          }
+          .print-category-section h3 {
+            margin: 0 0 12px 0;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+          }
+          .category-grid {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+          }
+          .category-col {
+            flex: 1;
+            text-align: center;
+          }
+          .category-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+          }
+          .category-value {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+          }
+          .category-stars {
+            color: #f5a623;
+            font-size: 11px;
+            margin-top: 2px;
+          }
+          .review-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+          }
+          .review-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 8px;
+          }
+          .review-index {
+            font-weight: 700;
+            color: #ff4433;
+          }
+          .review-user {
+            color: #0f172a;
+          }
+          .review-date {
+            color: #64748b;
+          }
+          .rating-scores {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 15px;
+          }
+          .rating-scores span {
+            margin-right: 8px;
+            display: inline-block;
+          }
+          .rating-scores small {
+            color: #64748b;
+            font-size: 11px;
+          }
+          .stars {
+            color: #f5a623;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+          }
+          .avg-badge {
+            background: #fff1ef;
+            color: #ff4433;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+          }
+          .review-comment {
+            font-size: 14px;
+            color: #334155;
+            white-space: pre-wrap;
+            background: #f8fafc;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #f1f5f9;
+            line-height: 1.6;
+          }
+          .no-comment {
+            color: #94a3b8;
+            font-style: italic;
+          }
+          @media print {
+            body { padding: 0; }
+            .review-item { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">
+            <h1>Core Fitness Review Log Report</h1>
+            <p>Generated feedback log summary statement</p>
+          </div>
+          <div class="report-info">
+            <strong>Date:</strong> ${new Date().toLocaleString()}<br/>
+            <strong>Exported Entries:</strong> ${totalSubset}
+          </div>
+        </div>
+
+        <div class="summary-cards">
+          <div class="card">
+            <div class="card-label">Overall Average Score</div>
+            <div class="card-value">${overallAvg} / 5.0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Satisfaction Rate</div>
+            <div class="card-value">${satisfactionRate}%</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Total Submissions</div>
+            <div class="card-value">${totalSubset}</div>
+          </div>
+        </div>
+
+        <div class="print-category-section">
+          <h3>Performance by Category</h3>
+          <div class="category-grid">
+            <div class="category-col">
+              <div class="category-label">Coaches</div>
+              <div class="category-value">${coachAvg.toFixed(1)} / 5</div>
+              <div class="category-stars">${getStars(coachAvg)}</div>
+            </div>
+            <div class="category-col">
+              <div class="category-label">Atmosphere</div>
+              <div class="category-value">${atmosphereAvg.toFixed(1)} / 5</div>
+              <div class="category-stars">${getStars(atmosphereAvg)}</div>
+            </div>
+            <div class="category-col">
+              <div class="category-label">Equipment</div>
+              <div class="category-value">${equipmentAvg.toFixed(1)} / 5</div>
+              <div class="category-stars">${getStars(equipmentAvg)}</div>
+            </div>
+            <div class="category-col">
+              <div class="category-label">Cleanliness</div>
+              <div class="category-value">${cleanlinessAvg.toFixed(1)} / 5</div>
+              <div class="category-stars">${getStars(cleanlinessAvg)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reviews-list">
+          ${reviewsHtml}
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 150);
+  };
+
+  const filteredAndSortedReviews = reviews.filter(review => {
+    const nameStr = (review.username || '').toLowerCase();
+    const phoneStr = (review.phone || '');
+    const commentStr = (review.comment || '').toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
+
+    const matchesSearch = 
+      nameStr.includes(searchLower) || 
+      phoneStr.includes(searchLower) || 
+      commentStr.includes(searchLower);
+
+    const avgRating = (review.coachRating + review.atmosphereRating + review.equipmentRating + review.cleanlinessRating) / 4;
+    const roundedAvg = Math.round(avgRating);
+
+    const matchesRating = ratingFilter === 'all' || roundedAvg === parseInt(ratingFilter, 10);
+
+    return matchesSearch && matchesRating;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    if (sortBy === 'oldest') {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    }
+    const avgA = (a.coachRating + a.atmosphereRating + a.equipmentRating + a.cleanlinessRating) / 4;
+    const avgB = (b.coachRating + b.atmosphereRating + b.equipmentRating + b.cleanlinessRating) / 4;
+    if (sortBy === 'highest') {
+      return avgB - avgA;
+    }
+    if (sortBy === 'lowest') {
+      return avgA - avgB;
+    }
+    return 0;
+  });
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -408,7 +865,7 @@ export default function App() {
         </div>
       ) : view === 'admin' && isAdminAuthenticated ? (
         <div style={{ width: '100%', padding: '0 2rem 4rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
             <div style={{ flex: '1 1 600px' }}>
               <RatingSummary reviews={reviews} />
             </div>
@@ -416,12 +873,98 @@ export default function App() {
               <AdminQRCode url={TARGET_PRODUCTION_URL} />
             </div>
           </div>
-          <div className="feed-header" style={{ marginBottom: '1.5rem' }}>
-            <h3 className="feed-header__title" style={{ margin: 0 }}>Active Log Database Feed ({reviews.length})</h3>
+
+          <div className="admin-controls-panel" style={{ background: 'var(--surface)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+              
+              <div style={{ flex: '1 1 250px', position: 'relative' }}>
+                <input 
+                  type="text" 
+                  placeholder="🔍 Search by name, phone, comment..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="field" 
+                  style={{ marginBottom: 0 }} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--ink-soft)' }}>Rating:</span>
+                  <select 
+                    value={ratingFilter} 
+                    onChange={(e) => setRatingFilter(e.target.value)}
+                    style={{ padding: '0.5rem 0.75rem', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--bg)', color: 'var(--ink)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}
+                  >
+                    <option value="all">⭐ All Ratings</option>
+                    <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+                    <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+                    <option value="3">⭐⭐⭐ 3 Stars</option>
+                    <option value="2">⭐⭐ 2 Stars</option>
+                    <option value="1">⭐ 1 Star</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--ink-soft)' }}>Sort:</span>
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                    style={{ padding: '0.5rem 0.75rem', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--bg)', color: 'var(--ink)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}
+                  >
+                    <option value="newest">📅 Newest First</option>
+                    <option value="oldest">📅 Oldest First</option>
+                    <option value="highest">📈 Highest Rated</option>
+                    <option value="lowest">📉 Lowest Rated</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button 
+                  type="button" 
+                  onClick={handleExportPDF} 
+                  style={{ padding: '0.55rem 1rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background 0.2s' }}
+                >
+                  📄 Export PDF
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleDeleteAllReviews} 
+                  style={{ padding: '0.55rem 1rem', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background 0.2s' }}
+                >
+                  🚨 Delete All
+                </button>
+              </div>
+
+            </div>
           </div>
-          {isLoading ? ( <p>Syncing storage logs...</p> ) : (
+
+          <div className="feed-header" style={{ marginBottom: '1.5rem', borderTop: 'none', paddingTop: 0 }}>
+            <h3 className="feed-header__title" style={{ margin: 0, fontSize: '1.2rem' }}>
+              Active Database Feed ({filteredAndSortedReviews.length} of {reviews.length})
+            </h3>
+            {(searchTerm || ratingFilter !== 'all') && (
+              <button 
+                onClick={() => { setSearchTerm(''); setRatingFilter('all'); }} 
+                style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '600', textDecoration: 'underline', padding: 0 }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {isLoading ? ( 
+            <p>Syncing storage logs...</p> 
+          ) : filteredAndSortedReviews.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }}>
+              <p style={{ color: 'var(--ink-soft)', fontSize: '0.9rem', margin: 0 }}>No reviews match your filters.</p>
+            </div>
+          ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', width: '100%' }}>
-              {reviews.map((review) => ( <ReviewCard key={review._id} review={review} isAdminMode={true} onDelete={handleDeleteReview} /> ))}
+              {filteredAndSortedReviews.map((review) => ( 
+                <ReviewCard key={review._id} review={review} isAdminMode={true} onDelete={handleDeleteReview} /> 
+              ))}
             </div>
           )}
         </div>
@@ -460,6 +1003,7 @@ export default function App() {
           )}
         </div>
       )}
+      
     </div>
   );
 } 

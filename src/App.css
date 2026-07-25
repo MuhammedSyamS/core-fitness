@@ -578,3 +578,275 @@ textarea.field {
   .scoreboard { padding: 1.25rem 1.15rem 1rem; }
   .star-field { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
 }
+
+/* ---------- Enhanced Admin Dashboard Styles ---------- */
+.scoreboard-enhanced {
+  padding: 1.75rem;
+  margin: 0 0 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.scoreboard-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.25rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  margin-bottom: 0.4rem;
+}
+
+.stat-value-container {
+  display: flex;
+  align-items: baseline;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.stat-max {
+  font-size: 1rem;
+  color: var(--ink-faint);
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+.stat-subtext {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  margin-top: 0.4rem;
+  font-weight: 500;
+}
+
+.dashboard-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.charts-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.charts-card-title {
+  font-size: 0.8rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  margin: 0 0 1rem 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+/* ---------- Print Styles ---------- */
+.print-only {
+  display: none;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    padding: 20px !important;
+  }
+
+  .app-shell {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .print-header {
+    border-bottom: 2px solid #ff4433;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .print-title h1 {
+    margin: 0;
+    font-size: 26px;
+    color: #0f172a;
+    font-weight: 800;
+  }
+
+  .print-title p {
+    margin: 5px 0 0;
+    font-size: 13px;
+    color: #64748b;
+  }
+
+  .print-report-info {
+    text-align: right;
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  .print-summary-cards {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+
+  .print-card {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    background: #f8fafc;
+    text-align: center;
+  }
+
+  .print-card-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 4px;
+  }
+
+  .print-card-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .print-review-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    page-break-inside: avoid;
+    background: #fff;
+  }
+
+  .print-review-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 13px;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 6px;
+  }
+
+  .print-review-index {
+    font-weight: 700;
+    color: #ff4433;
+  }
+
+  .print-review-user {
+    color: #0f172a;
+  }
+
+  .print-review-date {
+    color: #64748b;
+  }
+
+  .print-rating-scores {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+
+  .print-rating-scores span {
+    margin-right: 6px;
+    display: inline-block;
+  }
+
+  .print-rating-scores small {
+    color: #64748b;
+    font-size: 10px;
+  }
+
+  .print-stars {
+    color: #f5a623;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+
+  .print-avg-badge {
+    background: #fff1ef;
+    color: #ff4433;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+
+  .print-review-comment {
+    font-size: 13px;
+    color: #334155;
+    white-space: pre-wrap;
+    background: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #f1f5f9;
+    line-height: 1.5;
+  }
+
+  .print-no-comment {
+    color: #94a3b8;
+    font-style: italic;
+  }
+}
