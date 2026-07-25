@@ -364,6 +364,9 @@ export default function App() {
   const [ratingFilter, setRatingFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
 
+  // Admin login password visibility toggle state
+  const [showPassword, setShowPassword] = useState(false);
+
   useEffect(() => {
     if (window.location.pathname === '/admin') {
       setView('admin');
@@ -881,7 +884,24 @@ export default function App() {
           <form onSubmit={handleAdminLogin}>
             <h3 style={{ margin: '0 0 1rem 0', fontFamily: 'var(--font-display)' }}>Admin Portal Access</h3>
             {loginError && <p style={{ color: 'var(--accent)', fontSize: '0.85rem' }}>{loginError}</p>}
-            <input type="password" placeholder="Enter ADMIN_SECRET_KEY" value={adminKey} onChange={(e) => setAdminKey(e.target.value)} className="field" required />
+            <div style={{ position: 'relative', width: '100%', marginBottom: '1rem' }}>
+              <input 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Enter ADMIN_SECRET_KEY" 
+                value={adminKey} 
+                onChange={(e) => setAdminKey(e.target.value)} 
+                className="field" 
+                style={{ marginBottom: 0, paddingRight: '2.5rem' }} 
+                required 
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {showPassword ? '👁️' : '🙈'}
+              </button>
+            </div>
             <button type="submit" className="btn-primary">Authenticate</button>
           </form>
         </div>
