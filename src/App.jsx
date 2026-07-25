@@ -367,6 +367,25 @@ export default function App() {
   useEffect(() => {
     if (window.location.pathname === '/admin') {
       setView('admin');
+      
+      const savedKey = localStorage.getItem('admin_key');
+      if (savedKey) {
+        fetch(`${API_BASE_URL}/api/reviews/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: savedKey })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setAdminKey(savedKey);
+            setIsAdminAuthenticated(true);
+          } else {
+            localStorage.removeItem('admin_key');
+          }
+        })
+        .catch(() => {});
+      }
     }
     
     fetch(`${API_BASE_URL}/api/reviews`)
@@ -413,7 +432,10 @@ export default function App() {
         body: JSON.stringify({ key: adminKey })
       });
       const data = await res.json();
-      if (data.success) setIsAdminAuthenticated(true);
+      if (data.success) {
+        setIsAdminAuthenticated(true);
+        localStorage.setItem('admin_key', adminKey);
+      }
       else setLoginError('Invalid secret credentials token.');
     } catch {
       setLoginError('Authentication server unreachable.');
@@ -934,6 +956,17 @@ export default function App() {
                   style={{ padding: '0.55rem 1rem', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background 0.2s' }}
                 >
                   🚨 Delete All
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    localStorage.removeItem('admin_key');
+                    setIsAdminAuthenticated(false);
+                    setAdminKey('');
+                  }} 
+                  style={{ padding: '0.55rem 1rem', background: '#64748b', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background 0.2s' }}
+                >
+                  🚪 Logout
                 </button>
               </div>
 
