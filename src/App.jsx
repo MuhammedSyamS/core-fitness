@@ -3,11 +3,25 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 const METRICS = [
-  { key: 'coachRating', label: 'Coaches', short: 'Coaches' },
-  { key: 'atmosphereRating', label: 'Atmosphere', short: 'Atmosphere' },
-  { key: 'equipmentRating', label: 'Equipment', short: 'Equipment' },
-  { key: 'cleanlinessRating', label: 'Cleanliness', short: 'Cleanliness' },
+  { key: 'coachRating', label: 'Coaches', short: 'Coaches', description: 'Trainer guidance, support & fitness coaching' },
+  { key: 'atmosphereRating', label: 'Atmosphere', short: 'Atmosphere', description: 'Overall gym environment & workout energy' },
+  { key: 'equipmentRating', label: 'Equipment', short: 'Equipment', description: 'Machine quality, variety & maintenance' },
+  { key: 'cleanlinessRating', label: 'Cleanliness', short: 'Cleanliness', description: 'Gym hygiene, sanitation & facility clean standards' },
+  { key: 'onamCelebrationRating', label: 'Onam Celebration', short: 'Onam Celebration', description: 'Onam event arrangements, festive vibe & activities' },
 ];
+
+const getReviewAvg = (r) => {
+  const ratings = [
+    r.coachRating,
+    r.atmosphereRating,
+    r.equipmentRating,
+    r.cleanlinessRating,
+    r.onamCelebrationRating
+  ].filter(val => val !== undefined && val !== null && val > 0);
+
+  if (ratings.length === 0) return 0;
+  return ratings.reduce((sum, val) => sum + Number(val), 0) / ratings.length;
+};
 
 // FIXED: Automatically targets your local server (port 5000) when developing locally, and Render when in production
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://core-fitness-b.onrender.com');
@@ -154,7 +168,7 @@ function RatingSummary({ reviews }) {
   };
 
   const reviewsWithAvg = reviews.map(r => {
-    const avg = (r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4;
+    const avg = getReviewAvg(r);
     return { ...r, avg };
   });
 
@@ -257,11 +271,18 @@ function RatingSummary({ reviews }) {
   );
 }
 
-function StarRatingInput({ label, value, onChange }) {
+function StarRatingInput({ label, description, value, onChange }) {
   const [hoverValue, setHoverValue] = useState(null);
   return (
-    <div className="star-field" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.4rem', width: '100%', marginBottom: '1.2rem' }}>
-      <span className="star-field__label">{label}</span>
+    <div className="star-field" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.35rem', width: '100%', marginBottom: '1.2rem' }}>
+      <div>
+        <span className="star-field__label" style={{ fontWeight: '700', fontSize: '0.92rem', color: 'var(--ink)' }}>{label}</span>
+        {description && (
+          <span style={{ display: 'block', fontSize: '0.76rem', color: 'var(--ink-soft)', marginTop: '2px', fontWeight: '400' }}>
+            {description}
+          </span>
+        )}
+      </div>
       <div className="star-row" onMouseLeave={() => setHoverValue(null)}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button type="button" key={star} className="star-btn" onClick={(e) => { e.preventDefault(); onChange(star); }} onMouseEnter={() => setHoverValue(star)}>
@@ -355,7 +376,7 @@ export default function App() {
   const [successMessage, setSuccessMessage] = useState(false);
   const [lockUntilDate, setLockUntilDate] = useState(null);
 
-  const initialState = { username: '', phone: '', comment: '', coachRating: 0, atmosphereRating: 0, equipmentRating: 0, cleanlinessRating: 0 };
+  const initialState = { username: '', phone: '', comment: '', coachRating: 0, atmosphereRating: 0, equipmentRating: 0, cleanlinessRating: 0, onamCelebrationRating: 0 };
   const [formData, setFormData] = useState(initialState);
   const [formError, setFormError] = useState('');
 
@@ -499,8 +520,8 @@ export default function App() {
     }
 
     const totalSubset = filteredAndSortedReviews.length;
-    const overallAvg = (filteredAndSortedReviews.reduce((sum, r) => sum + (r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4, 0) / totalSubset).toFixed(2);
-    const positiveReviews = filteredAndSortedReviews.filter(r => (r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4 >= 4.0).length;
+    const overallAvg = (filteredAndSortedReviews.reduce((sum, r) => sum + getReviewAvg(r), 0) / totalSubset).toFixed(2);
+    const positiveReviews = filteredAndSortedReviews.filter(r => getReviewAvg(r) >= 4.0).length;
     const satisfactionRate = ((positiveReviews / totalSubset) * 100).toFixed(0);
 
     const getCategoryAvg = (key) => {
@@ -512,6 +533,7 @@ export default function App() {
     const atmosphereAvg = getCategoryAvg('atmosphereRating');
     const equipmentAvg = getCategoryAvg('equipmentRating');
     const cleanlinessAvg = getCategoryAvg('cleanlinessRating');
+    const onamCelebrationAvg = getCategoryAvg('onamCelebrationRating');
 
     const getStars = (rating) => {
       const rounded = Math.round(rating);
@@ -519,7 +541,7 @@ export default function App() {
     };
 
     const reviewsHtml = filteredAndSortedReviews.map((r, i) => {
-      const avg = ((r.coachRating + r.atmosphereRating + r.equipmentRating + r.cleanlinessRating) / 4).toFixed(2);
+      const avg = getReviewAvg(r).toFixed(2);
       return `
         <div class="review-item">
           <div class="review-meta">
@@ -532,6 +554,7 @@ export default function App() {
             <span>Atmosphere: <strong class="stars">${getStars(r.atmosphereRating)}</strong> <small>(${r.atmosphereRating}/5)</small></span> | 
             <span>Equipment: <strong class="stars">${getStars(r.equipmentRating)}</strong> <small>(${r.equipmentRating}/5)</small></span> | 
             <span>Cleanliness: <strong class="stars">${getStars(r.cleanlinessRating)}</strong> <small>(${r.cleanlinessRating}/5)</small></span> | 
+            <span>Onam Celebration: <strong class="stars">${getStars(r.onamCelebrationRating || 0)}</strong> <small>(${r.onamCelebrationRating || 0}/5)</small></span> | 
             <span class="avg-badge">Average: <strong>${avg}/5</strong></span>
           </div>
           <div class="review-comment">
@@ -769,6 +792,11 @@ export default function App() {
               <div class="category-value">${cleanlinessAvg.toFixed(1)} / 5</div>
               <div class="category-stars">${getStars(cleanlinessAvg)}</div>
             </div>
+            <div class="category-col">
+              <div class="category-label">Onam Celebration</div>
+              <div class="category-value">${onamCelebrationAvg.toFixed(1)} / 5</div>
+              <div class="category-stars">${getStars(onamCelebrationAvg)}</div>
+            </div>
           </div>
         </div>
 
@@ -798,7 +826,7 @@ export default function App() {
       phoneStr.includes(searchLower) || 
       commentStr.includes(searchLower);
 
-    const avgRating = (review.coachRating + review.atmosphereRating + review.equipmentRating + review.cleanlinessRating) / 4;
+    const avgRating = getReviewAvg(review);
     const roundedAvg = Math.round(avgRating);
 
     const matchesRating = ratingFilter === 'all' || roundedAvg === parseInt(ratingFilter, 10);
@@ -811,8 +839,8 @@ export default function App() {
     if (sortBy === 'oldest') {
       return new Date(a.createdAt) - new Date(b.createdAt);
     }
-    const avgA = (a.coachRating + a.atmosphereRating + a.equipmentRating + a.cleanlinessRating) / 4;
-    const avgB = (b.coachRating + b.atmosphereRating + b.equipmentRating + b.cleanlinessRating) / 4;
+    const avgA = getReviewAvg(a);
+    const avgB = getReviewAvg(b);
     if (sortBy === 'highest') {
       return avgB - avgA;
     }
@@ -1042,8 +1070,8 @@ export default function App() {
               {formError && <div className="form-error" style={{ marginBottom: '1rem' }}>{formError}</div>}
 
               <div className="star-panel">
-                {METRICS.map(({ key, label }) => (
-                  <StarRatingInput key={key} label={label} value={formData[key]} onChange={(val) => handleRatingChange(key, val)} />
+                {METRICS.map(({ key, label, description }) => (
+                  <StarRatingInput key={key} label={label} description={description} value={formData[key]} onChange={(val) => handleRatingChange(key, val)} />
                 ))}
               </div>
 
