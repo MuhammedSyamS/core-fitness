@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const METRICS = [
+const DEFAULT_METRICS = [
   { key: 'coachRating', label: 'Coaches', short: 'Coaches', description: 'Trainer guidance, support & fitness coaching' },
   { key: 'atmosphereRating', label: 'Atmosphere', short: 'Atmosphere', description: 'Overall gym environment & workout energy' },
   { key: 'equipmentRating', label: 'Equipment', short: 'Equipment', description: 'Machine quality, variety & maintenance' },
@@ -10,20 +10,64 @@ const METRICS = [
   { key: 'onamCelebrationRating', label: 'Onam Celebration', short: 'Onam Celebration', description: 'Onam event arrangements, festive vibe & activities' },
 ];
 
-const getReviewAvg = (r) => {
-  const ratings = [
-    r.coachRating,
-    r.atmosphereRating,
-    r.equipmentRating,
-    r.cleanlinessRating,
-    r.onamCelebrationRating
-  ].filter(val => val !== undefined && val !== null && val > 0);
-
-  if (ratings.length === 0) return 0;
-  return ratings.reduce((sum, val) => sum + Number(val), 0) / ratings.length;
+export const getReviewRating = (r, key) => {
+  if (!r) return 0;
+  if (r.ratings && r.ratings[key] !== undefined && r.ratings[key] !== null) {
+    return Number(r.ratings[key]);
+  }
+  if (r[key] !== undefined && r[key] !== null && Number(r[key]) > 0) {
+    return Number(r[key]);
+  }
+  return 0;
 };
 
-// FIXED: Automatically targets your local server (port 5000) when developing locally, and Render when in production
+export const getReviewAvg = (r, categoriesList = null) => {
+  if (!r) return 0;
+  let values = [];
+  if (categoriesList && categoriesList.length > 0) {
+    values = categoriesList
+      .map(c => getReviewRating(r, c.key))
+      .filter(v => v > 0);
+  }
+  if (values.length === 0) {
+    const keys = Object.keys(r).filter(k => k.toLowerCase().endsWith('rating') && typeof r[k] === 'number' && r[k] > 0);
+    if (keys.length > 0) {
+      values = keys.map(k => Number(r[k]));
+    } else if (r.ratings && typeof r.ratings === 'object') {
+      values = Object.values(r.ratings).map(Number).filter(v => v > 0);
+    }
+  }
+  if (values.length === 0) return 0;
+  return values.reduce((sum, val) => sum + val, 0) / values.length;
+};
+
+// Algorithmic genuine mobile number validator
+export function isValidGenuinePhoneNumber(phone) {
+  if (!phone || typeof phone !== 'string') return false;
+
+  const digits = phone.replace(/\D/g, '');
+
+  let localDigits = digits;
+  if (localDigits.length === 12 && localDigits.startsWith('91')) {
+    localDigits = localDigits.substring(2);
+  } else if (localDigits.length === 11 && localDigits.startsWith('0')) {
+    localDigits = localDigits.substring(1);
+  }
+
+  if (localDigits.length !== 10) return false;
+  if (!/^[6-9]/.test(localDigits)) return false;
+  if (/^(\d)\1{9}$/.test(localDigits)) return false;
+
+  const sequentialPatterns = ['1234567890', '0123456789', '9876543210', '8765432109'];
+  if (sequentialPatterns.includes(localDigits)) return false;
+
+  const twoDigitPattern = localDigits.substring(0, 2);
+  if (twoDigitPattern.repeat(5) === localDigits) return false;
+
+  return true;
+}
+
+// Targets local server (port 5000) when developing locally, and Render when in production
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://core-fitness-b.onrender.com');
 const TARGET_PRODUCTION_URL = 'https://core-fitness-lac.vercel.app/';
 
@@ -62,7 +106,7 @@ function AdminQRCode({ url, size = 150 }) {
       tempLink.click();
       document.body.removeChild(tempLink);
       window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
+    } catch {
       alert('Could not download QR Code image.');
     } finally {
       setIsDownloading(false);
@@ -152,7 +196,7 @@ function Hero() {
   );
 }
 
-function RatingSummary({ reviews }) {
+function RatingSummary({ reviews, categories }) {
   if (reviews.length === 0) {
     return (
       <div className="panel scoreboard" style={{ width: '100%', marginBottom: '2rem', padding: '2rem', textAlign: 'center' }}>
@@ -163,12 +207,14 @@ function RatingSummary({ reviews }) {
   }
 
   const getAvg = (key) => {
-    const total = reviews.reduce((acc, curr) => acc + (Number(curr[key]) || 0), 0);
-    return total / reviews.length;
+    const reviewsWithRating = reviews.filter(r => getReviewRating(r, key) > 0);
+    if (reviewsWithRating.length === 0) return 0;
+    const total = reviewsWithRating.reduce((acc, curr) => acc + getReviewRating(curr, key), 0);
+    return total / reviewsWithRating.length;
   };
 
   const reviewsWithAvg = reviews.map(r => {
-    const avg = getReviewAvg(r);
+    const avg = getReviewAvg(r, categories);
     return { ...r, avg };
   });
 
@@ -226,7 +272,7 @@ function RatingSummary({ reviews }) {
           <div className="charts-card">
             <h5 className="charts-card-title">Performance by Category</h5>
             <div className="scoreboard__grid" style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-              {METRICS.map(({ key, label }) => {
+              {categories.map(({ key, label }) => {
                 const avg = getAvg(key);
                 return (
                   <div className="scoreboard__item" key={key}>
@@ -294,7 +340,7 @@ function StarRatingInput({ label, description, value, onChange }) {
   );
 }
 
-function ReviewCard({ review, isAdminMode, onDelete }) {
+function ReviewCard({ review, categories, isAdminMode, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   
@@ -325,7 +371,7 @@ function ReviewCard({ review, isAdminMode, onDelete }) {
           </div>
         </div>
         {isAdminMode && (
-          <button onClick={() => onDelete(review._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: '1.2rem', padding: 0 }}>🗑️</button>
+          <button onClick={() => onDelete(review._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: '1.2rem', padding: 0 }} title="Delete Review">🗑️</button>
         )}
       </div>
 
@@ -353,10 +399,201 @@ function ReviewCard({ review, isAdminMode, onDelete }) {
       )}
 
       <div className="review-card__metrics" style={{ borderTop: '1px solid #f3f3f3', paddingTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        {METRICS.map(({ key, short }) => (
-          <div className="review-card__metric" key={key} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#777', fontWeight: '500' }}>{short}</span>
-            <StaticStars value={review[key]} />
+        {categories.map(({ key, short, label }) => {
+          const val = getReviewRating(review, key);
+          return (
+            <div className="review-card__metric" key={key} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#777', fontWeight: '500' }}>{short || label}</span>
+              <StaticStars value={val} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CategoryModal({ isOpen, onClose, onSave, editingCategory }) {
+  const [label, setLabel] = useState('');
+  const [short, setShort] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (editingCategory) {
+      setLabel(editingCategory.label || '');
+      setShort(editingCategory.short || '');
+      setDescription(editingCategory.description || '');
+    } else {
+      setLabel('');
+      setShort('');
+      setDescription('');
+    }
+    setError('');
+  }, [editingCategory, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!label.trim()) {
+      setError('Please enter a category title/name.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        label: label.trim(),
+        short: short.trim() || label.trim(),
+        description: description.trim()
+      });
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Operation failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="category-modal-overlay" onClick={onClose}>
+      <div className="category-modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="category-modal-header">
+          <h3 className="category-modal-title">
+            {editingCategory ? '✏️ Edit Review Option' : '➕ Add New Review Option'}
+          </h3>
+          <button type="button" className="category-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        {error && (
+          <div className="form-error" style={{ marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="category-form-group">
+            <label className="category-form-label">Option / Category Name *</label>
+            <input
+              type="text"
+              className="field"
+              placeholder="e.g. Music & Audio, Locker Room, Zumba Sessions"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="category-form-group">
+            <label className="category-form-label">Short Label (used on cards & badges)</label>
+            <input
+              type="text"
+              className="field"
+              placeholder="e.g. Music (optional)"
+              value={short}
+              onChange={(e) => setShort(e.target.value)}
+            />
+          </div>
+
+          <div className="category-form-group">
+            <label className="category-form-label">Description / Subtitle</label>
+            <textarea
+              className="field"
+              placeholder="Brief guidance shown to students below the stars on the review form"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="category-modal-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ width: 'auto', padding: '0.55rem 1.25rem' }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : (editingCategory ? 'Save Changes' : 'Add Option')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function CategoryManager({ categories, onAddClick, onEditClick, onDeleteClick }) {
+  return (
+    <div className="category-mgmt-card">
+      <div className="category-mgmt-header">
+        <div>
+          <h3 className="category-mgmt-title">
+            ⚙️ Review Rating Options & Categories
+            <span className="category-count-badge">{categories.length} Active</span>
+          </h3>
+          <p className="category-mgmt-desc">
+            Customise the features and criteria students rate (e.g. Atmosphere, Coaches, Music, Equipment).
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn-add-category"
+          onClick={onAddClick}
+        >
+          ➕ Add New Option
+        </button>
+      </div>
+
+      <div className="category-cards-grid">
+        {categories.map((cat, idx) => (
+          <div className="category-card-item" key={cat._id || cat.key}>
+            <div className="category-card-top">
+              <div>
+                <h4 className="category-card-name">
+                  <span style={{ color: 'var(--accent)', marginRight: '6px' }}>#{idx + 1}</span>
+                  {cat.label}
+                </h4>
+                <span className="category-card-key">{cat.key}</span>
+              </div>
+              <span style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--local-badge)', background: 'var(--local-badge-tint)', padding: '2px 6px', borderRadius: '4px' }}>
+                Active
+              </span>
+            </div>
+
+            <p className="category-card-desc">
+              {cat.description || <em style={{ color: '#aaa' }}>No description provided</em>}
+            </p>
+
+            <div className="category-card-actions">
+              <button
+                type="button"
+                className="btn-category-action"
+                onClick={() => onEditClick(cat)}
+                title="Edit this category"
+              >
+                ✏️ Edit
+              </button>
+              <button
+                type="button"
+                className="btn-category-action btn-category-delete"
+                onClick={() => onDeleteClick(cat)}
+                title="Delete this category"
+              >
+                🗑️ Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -366,6 +603,7 @@ function ReviewCard({ review, isAdminMode, onDelete }) {
 
 export default function App() {
   const [reviews, setReviews] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_METRICS);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState('home'); 
   const [adminKey, setAdminKey] = useState('');
@@ -376,8 +614,12 @@ export default function App() {
   const [successMessage, setSuccessMessage] = useState(false);
   const [lockUntilDate, setLockUntilDate] = useState(null);
 
-  const initialState = { username: '', phone: '', comment: '', coachRating: 0, atmosphereRating: 0, equipmentRating: 0, cleanlinessRating: 0, onamCelebrationRating: 0 };
-  const [formData, setFormData] = useState(initialState);
+  // Dynamic category management modal states
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryFeedback, setCategoryFeedback] = useState({ text: '', type: '' });
+
+  const [formData, setFormData] = useState({ username: '', phone: '', comment: '' });
   const [formError, setFormError] = useState('');
 
   // Search, filtering and sorting states for the admin panel
@@ -388,6 +630,10 @@ export default function App() {
   // Admin login password visibility toggle state
   const [showPassword, setShowPassword] = useState(false);
 
+  // Field focus tracking for floating labels
+  const [focusedField, setFocusedField] = useState(null);
+
+  // Fetch reviews and categories on initial mount
   useEffect(() => {
     if (window.location.pathname === '/admin') {
       setView('admin');
@@ -412,6 +658,17 @@ export default function App() {
       }
     }
     
+    // Fetch categories
+    fetch(`${API_BASE_URL}/api/categories`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setCategories(data.data);
+        }
+      })
+      .catch(() => console.warn('Could not sync dynamic categories, using defaults.'));
+
+    // Fetch reviews
     fetch(`${API_BASE_URL}/api/reviews`)
       .then((res) => { if (!res.ok) throw new Error(); return res.json(); })
       .then((data) => { 
@@ -449,54 +706,73 @@ export default function App() {
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/reviews/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: adminKey })
+        body: JSON.stringify({ key: adminKey }),
       });
+
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setIsAdminAuthenticated(true);
         localStorage.setItem('admin_key', adminKey);
+      } else {
+        setLoginError(data.message || 'Authentication rejected. Incorrect access key.');
       }
-      else setLoginError('Invalid secret credentials token.');
     } catch {
-      setLoginError('Authentication server unreachable.');
+      setLoginError('Could not verify credentials due to connection error.');
     }
   };
 
   const handleDeleteReview = async (id) => {
-    if (!window.confirm('Purge this comment entry permanently?')) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/reviews/admin/delete/${id}`, {
-        method: 'DELETE',
-        headers: { 'admin-key': adminKey }
-      });
-      const data = await res.json();
-      if (data.success) setReviews(prev => prev.filter(r => r._id !== id));
-    } catch { alert('Delete transaction rejected.'); }
-  };
-
-  const handleDeleteAllReviews = async () => {
-    const doubleCheck = window.confirm('🚨 WARNING: You are about to permanently delete ALL reviews from the database. This action is irreversible and cannot be undone. Are you sure you want to proceed?');
-    if (!doubleCheck) return;
-
-    const confirmationInput = window.prompt("Type 'DELETE ALL' in all caps to authorize the complete purge of the reviews database:");
-    if (confirmationInput !== 'DELETE ALL') {
-      alert("Purge cancelled. The confirmation code did not match.");
+    if (!window.confirm("Are you sure you want to permanently delete this review entry?")) {
       return;
     }
 
     try {
+      const currentAdminKey = adminKey || localStorage.getItem('admin_key') || '';
+      const res = await fetch(`${API_BASE_URL}/api/reviews/admin/delete/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'admin-key': currentAdminKey
+        }
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setReviews((prev) => prev.filter((r) => r._id !== id));
+      } else {
+        alert(data.message || 'Deletion rejected by server.');
+      }
+    } catch {
+      alert('Delete operation failed due to connection error.');
+    }
+  };
+
+  const handleDeleteAllReviews = async () => {
+    const confirmationPrompt = window.prompt("⚠️ WARNING: This will permanently delete ALL customer reviews.\n\nType 'DELETE ALL' to confirm:");
+    if (confirmationPrompt !== 'DELETE ALL') {
+      if (confirmationPrompt !== null) {
+        alert("Operation cancelled. Confirmation text did not match.");
+      }
+      return;
+    }
+
+    try {
+      const currentAdminKey = adminKey || localStorage.getItem('admin_key') || '';
       const res = await fetch(`${API_BASE_URL}/api/reviews/admin/delete-all`, {
         method: 'DELETE',
-        headers: { 'admin-key': adminKey }
+        headers: {
+          'admin-key': currentAdminKey
+        }
       });
+
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setReviews([]);
-        alert("Success: All reviews have been purged from the database.");
+        alert(data.message || 'All reviews have been successfully removed.');
       } else {
         alert(data.message || 'Purge all transaction rejected.');
       }
@@ -505,8 +781,79 @@ export default function App() {
     }
   };
 
+  // Category CRUD Handlers
+  const handleOpenAddCategory = () => {
+    setEditingCategory(null);
+    setIsCategoryModalOpen(true);
+  };
 
+  const handleOpenEditCategory = (cat) => {
+    setEditingCategory(cat);
+    setIsCategoryModalOpen(true);
+  };
 
+  const handleSaveCategory = async (categoryData) => {
+    const isEdit = !!editingCategory;
+    const currentAdminKey = adminKey || localStorage.getItem('admin_key') || '';
+    const url = isEdit 
+      ? `${API_BASE_URL}/api/categories/admin/${editingCategory._id}` 
+      : `${API_BASE_URL}/api/categories/admin`;
+    const method = isEdit ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'admin-key': currentAdminKey
+      },
+      body: JSON.stringify(categoryData)
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Failed to save review category.');
+    }
+
+    if (isEdit) {
+      setCategories(prev => prev.map(c => (c._id === editingCategory._id || c.key === editingCategory.key) ? data.data : c));
+      setCategoryFeedback({ text: `Category "${data.data.label}" updated successfully!`, type: 'success' });
+    } else {
+      setCategories(prev => [...prev, data.data]);
+      setCategoryFeedback({ text: `New category "${data.data.label}" added successfully!`, type: 'success' });
+    }
+
+    setTimeout(() => setCategoryFeedback({ text: '', type: '' }), 4000);
+  };
+
+  const handleDeleteCategory = async (cat) => {
+    if (!window.confirm(`Are you sure you want to delete the "${cat.label}" category? It will no longer appear on the student review form.`)) {
+      return;
+    }
+
+    try {
+      const currentAdminKey = adminKey || localStorage.getItem('admin_key') || '';
+      const res = await fetch(`${API_BASE_URL}/api/categories/admin/${cat._id}`, {
+        method: 'DELETE',
+        headers: {
+          'admin-key': currentAdminKey
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.message || 'Failed to delete category.');
+        return;
+      }
+
+      setCategories(prev => prev.filter(c => c._id !== cat._id && c.key !== cat.key));
+      setCategoryFeedback({ text: `Category "${cat.label}" deleted successfully.`, type: 'success' });
+      setTimeout(() => setCategoryFeedback({ text: '', type: '' }), 4000);
+    } catch {
+      alert('Network error while deleting category.');
+    }
+  };
+
+  // PDF Export
   const handleExportPDF = () => {
     if (filteredAndSortedReviews.length === 0) {
       alert("No review data matching the current filters to export.");
@@ -520,28 +867,40 @@ export default function App() {
     }
 
     const totalSubset = filteredAndSortedReviews.length;
-    const overallAvg = (filteredAndSortedReviews.reduce((sum, r) => sum + getReviewAvg(r), 0) / totalSubset).toFixed(2);
-    const positiveReviews = filteredAndSortedReviews.filter(r => getReviewAvg(r) >= 4.0).length;
+    const overallAvg = (filteredAndSortedReviews.reduce((sum, r) => sum + getReviewAvg(r, categories), 0) / totalSubset).toFixed(2);
+    const positiveReviews = filteredAndSortedReviews.filter(r => getReviewAvg(r, categories) >= 4.0).length;
     const satisfactionRate = ((positiveReviews / totalSubset) * 100).toFixed(0);
 
     const getCategoryAvg = (key) => {
-      const total = filteredAndSortedReviews.reduce((acc, curr) => acc + (Number(curr[key]) || 0), 0);
-      return total / totalSubset;
+      const ratedReviews = filteredAndSortedReviews.filter(r => getReviewRating(r, key) > 0);
+      if (ratedReviews.length === 0) return 0;
+      const total = ratedReviews.reduce((acc, curr) => acc + getReviewRating(curr, key), 0);
+      return total / ratedReviews.length;
     };
-
-    const coachAvg = getCategoryAvg('coachRating');
-    const atmosphereAvg = getCategoryAvg('atmosphereRating');
-    const equipmentAvg = getCategoryAvg('equipmentRating');
-    const cleanlinessAvg = getCategoryAvg('cleanlinessRating');
-    const onamCelebrationAvg = getCategoryAvg('onamCelebrationRating');
 
     const getStars = (rating) => {
       const rounded = Math.round(rating);
       return '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
     };
 
+    const categoryColsHtml = categories.map(cat => {
+      const avg = getCategoryAvg(cat.key);
+      return `
+        <div class="category-col">
+          <div class="category-label">${cat.label}</div>
+          <div class="category-value">${avg.toFixed(1)} / 5</div>
+          <div class="category-stars">${getStars(avg)}</div>
+        </div>
+      `;
+    }).join('');
+
     const reviewsHtml = filteredAndSortedReviews.map((r, i) => {
-      const avg = getReviewAvg(r).toFixed(2);
+      const avg = getReviewAvg(r, categories).toFixed(2);
+      const catScoresHtml = categories.map(cat => {
+        const rating = getReviewRating(r, cat.key);
+        return `<span>${cat.label}: <strong class="stars">${getStars(rating)}</strong> <small>(${rating}/5)</small></span>`;
+      }).join(' | ');
+
       return `
         <div class="review-item">
           <div class="review-meta">
@@ -550,11 +909,7 @@ export default function App() {
             <span class="review-date">${new Date(r.createdAt).toLocaleDateString()} ${new Date(r.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
           <div class="rating-scores">
-            <span>Coaches: <strong class="stars">${getStars(r.coachRating)}</strong> <small>(${r.coachRating}/5)</small></span> | 
-            <span>Atmosphere: <strong class="stars">${getStars(r.atmosphereRating)}</strong> <small>(${r.atmosphereRating}/5)</small></span> | 
-            <span>Equipment: <strong class="stars">${getStars(r.equipmentRating)}</strong> <small>(${r.equipmentRating}/5)</small></span> | 
-            <span>Cleanliness: <strong class="stars">${getStars(r.cleanlinessRating)}</strong> <small>(${r.cleanlinessRating}/5)</small></span> | 
-            <span>Onam Celebration: <strong class="stars">${getStars(r.onamCelebrationRating || 0)}</strong> <small>(${r.onamCelebrationRating || 0}/5)</small></span> | 
+            ${catScoresHtml} | 
             <span class="avg-badge">Average: <strong>${avg}/5</strong></span>
           </div>
           <div class="review-comment">
@@ -598,59 +953,55 @@ export default function App() {
             color: #64748b;
           }
           .report-info {
-            text-align: right;
             font-size: 13px;
             color: #64748b;
+            text-align: right;
           }
           .summary-cards {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             margin-bottom: 30px;
           }
           .card {
             flex: 1;
+            background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 15px;
-            background: #f8fafc;
-            text-align: center;
-          }
-          .card-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: #0f172a;
-            margin-top: 5px;
+            padding: 15px 20px;
           }
           .card-label {
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
             color: #64748b;
-            font-weight: 600;
+            font-weight: 700;
+            margin-bottom: 6px;
+          }
+          .card-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
           }
           .print-category-section {
+            background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 15px;
-            background: #f8fafc;
+            padding: 15px 20px;
             margin-bottom: 30px;
           }
           .print-category-section h3 {
             margin: 0 0 12px 0;
-            font-size: 11px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #64748b;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 4px;
+            color: #475569;
           }
           .category-grid {
             display: flex;
-            justify-content: space-between;
-            gap: 10px;
+            flex-wrap: wrap;
+            gap: 15px;
           }
           .category-col {
-            flex: 1;
+            flex: 1 1 120px;
             text-align: center;
           }
           .category-label {
@@ -701,6 +1052,7 @@ export default function App() {
             font-size: 13px;
             color: #64748b;
             margin-bottom: 15px;
+            line-height: 1.6;
           }
           .rating-scores span {
             margin-right: 8px;
@@ -772,31 +1124,7 @@ export default function App() {
         <div class="print-category-section">
           <h3>Performance by Category</h3>
           <div class="category-grid">
-            <div class="category-col">
-              <div class="category-label">Coaches</div>
-              <div class="category-value">${coachAvg.toFixed(1)} / 5</div>
-              <div class="category-stars">${getStars(coachAvg)}</div>
-            </div>
-            <div class="category-col">
-              <div class="category-label">Atmosphere</div>
-              <div class="category-value">${atmosphereAvg.toFixed(1)} / 5</div>
-              <div class="category-stars">${getStars(atmosphereAvg)}</div>
-            </div>
-            <div class="category-col">
-              <div class="category-label">Equipment</div>
-              <div class="category-value">${equipmentAvg.toFixed(1)} / 5</div>
-              <div class="category-stars">${getStars(equipmentAvg)}</div>
-            </div>
-            <div class="category-col">
-              <div class="category-label">Cleanliness</div>
-              <div class="category-value">${cleanlinessAvg.toFixed(1)} / 5</div>
-              <div class="category-stars">${getStars(cleanlinessAvg)}</div>
-            </div>
-            <div class="category-col">
-              <div class="category-label">Onam Celebration</div>
-              <div class="category-value">${onamCelebrationAvg.toFixed(1)} / 5</div>
-              <div class="category-stars">${getStars(onamCelebrationAvg)}</div>
-            </div>
+            ${categoryColsHtml}
           </div>
         </div>
 
@@ -826,7 +1154,7 @@ export default function App() {
       phoneStr.includes(searchLower) || 
       commentStr.includes(searchLower);
 
-    const avgRating = getReviewAvg(review);
+    const avgRating = getReviewAvg(review, categories);
     const roundedAvg = Math.round(avgRating);
 
     const matchesRating = ratingFilter === 'all' || roundedAvg === parseInt(ratingFilter, 10);
@@ -839,8 +1167,8 @@ export default function App() {
     if (sortBy === 'oldest') {
       return new Date(a.createdAt) - new Date(b.createdAt);
     }
-    const avgA = getReviewAvg(a);
-    const avgB = getReviewAvg(b);
+    const avgA = getReviewAvg(a, categories);
+    const avgB = getReviewAvg(b, categories);
     if (sortBy === 'highest') {
       return avgB - avgA;
     }
@@ -855,14 +1183,32 @@ export default function App() {
     setFormError('');
     setSuccessMessage(false);
 
-    if (!formData.username.trim()) return setFormError('Please enter your name.');
-    if (!formData.phone.trim()) return setFormError('Please enter your phone number.');
+    if (!formData.username || !formData.username.trim()) return setFormError('Please enter your name.');
+    
+    if (!formData.phone || !formData.phone.trim()) {
+      return setFormError('Please enter your mobile phone number.');
+    }
 
-    const unratedMetric = METRICS.find(({ key }) => formData[key] === 0);
+    if (!isValidGenuinePhoneNumber(formData.phone)) {
+      return setFormError('Please enter a valid, genuine 10-digit mobile number (e.g. 9876543210).');
+    }
+
+    if (!formData.comment || !formData.comment.trim() || formData.comment.trim().length < 5) {
+      return setFormError('Please share details of your experience in the comment field (minimum 5 characters).');
+    }
+
+    const unratedMetric = categories.find(({ key }) => !formData[key] || formData[key] === 0);
     if (unratedMetric) return setFormError(`Please select a star rating for "${unratedMetric.label}".`);
+
+    const ratingsPayload = {};
+    categories.forEach(({ key }) => {
+      ratingsPayload[key] = formData[key] || 0;
+    });
 
     const payloadToSend = { 
       ...formData,
+      ...ratingsPayload,
+      ratings: ratingsPayload,
       username: formData.username.trim(),
       phone: formData.phone.trim(),
       comment: formData.comment ? formData.comment.trim() : ''
@@ -878,7 +1224,7 @@ export default function App() {
       
       if (res.status === 201 && data.success) {
         setReviews((prev) => [data.data, ...prev]);
-        setFormData(initialState);
+        setFormData({ username: '', phone: '', comment: '' });
         setShowConfetti(true);
         setSuccessMessage(true);
         
@@ -906,6 +1252,14 @@ export default function App() {
     <div className="app-shell">
       <ConfettiExplosion active={showConfetti} />
       <Hero />
+
+      {/* Dynamic Category Modal */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSave={handleSaveCategory}
+        editingCategory={editingCategory}
+      />
 
       {view === 'admin' && !isAdminAuthenticated ? (
         <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem', width: '90%' }} className="panel">
@@ -935,14 +1289,30 @@ export default function App() {
         </div>
       ) : view === 'admin' && isAdminAuthenticated ? (
         <div style={{ width: '100%', padding: '0 2rem 4rem' }}>
+          
+          {/* Notification feedback banner */}
+          {categoryFeedback.text && (
+            <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', color: '#15803d', padding: '0.75rem 1.25rem', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: '600', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ✅ {categoryFeedback.text}
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
             <div style={{ flex: '1 1 600px' }}>
-              <RatingSummary reviews={reviews} />
+              <RatingSummary reviews={reviews} categories={categories} />
             </div>
             <div style={{ flex: '0 0 auto', marginBottom: '2rem', margin: '0 auto' }}>
               <AdminQRCode url={TARGET_PRODUCTION_URL} />
             </div>
           </div>
+
+          {/* Admin Category Management Card */}
+          <CategoryManager
+            categories={categories}
+            onAddClick={handleOpenAddCategory}
+            onEditClick={handleOpenEditCategory}
+            onDeleteClick={handleDeleteCategory}
+          />
 
           <div className="admin-controls-panel" style={{ background: 'var(--surface)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', marginBottom: '2rem' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1044,7 +1414,7 @@ export default function App() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', width: '100%' }}>
               {filteredAndSortedReviews.map((review) => ( 
-                <ReviewCard key={review._id} review={review} isAdminMode={true} onDelete={handleDeleteReview} /> 
+                <ReviewCard key={review._id} review={review} categories={categories} isAdminMode={true} onDelete={handleDeleteReview} /> 
               ))}
             </div>
           )}
@@ -1070,14 +1440,74 @@ export default function App() {
               {formError && <div className="form-error" style={{ marginBottom: '1rem' }}>{formError}</div>}
 
               <div className="star-panel">
-                {METRICS.map(({ key, label, description }) => (
-                  <StarRatingInput key={key} label={label} description={description} value={formData[key]} onChange={(val) => handleRatingChange(key, val)} />
+                {categories.map(({ key, label, description }) => (
+                  <StarRatingInput key={key} label={label} description={description} value={formData[key] || 0} onChange={(val) => handleRatingChange(key, val)} />
                 ))}
               </div>
 
-              <input type="text" name="username" placeholder="Your Name" value={formData.username} onChange={handleTextChange} className="field" required />
-              <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleTextChange} className="field" required style={{ marginBottom: '1.2rem' }} />
-              <textarea name="comment" placeholder="Share details of your experience... (Optional)" value={formData.comment} onChange={handleTextChange} className="field" />
+              {/* Name Field */}
+              <div className={`modern-field-container ${focusedField === 'username' ? 'is-focused is-active' : formData.username ? 'is-active' : ''}`}>
+                <div className="modern-input-wrapper">
+                  <span className="modern-field-icon" aria-hidden="true">👤</span>
+                  <input 
+                    type="text" 
+                    name="username" 
+                    value={formData.username} 
+                    onChange={handleTextChange} 
+                    onFocus={() => setFocusedField('username')}
+                    onBlur={() => setFocusedField(null)}
+                    className="modern-field-input" 
+                    required 
+                    aria-label="Name"
+                  />
+                  <label className="modern-floating-label">
+                    Name <span className="modern-star-pill">*</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Number Field */}
+              <div className={`modern-field-container ${focusedField === 'phone' ? 'is-focused is-active' : formData.phone ? 'is-active' : ''}`}>
+                <div className="modern-input-wrapper">
+                  <span className="modern-field-icon" aria-hidden="true">📱</span>
+                  <input 
+                    type="tel" 
+                    name="phone" 
+                    value={formData.phone} 
+                    onChange={handleTextChange} 
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    className="modern-field-input" 
+                    required 
+                    maxLength={15}
+                    aria-label="Number"
+                  />
+                  <label className="modern-floating-label">
+                    Number <span className="modern-star-pill">*</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Comment Field */}
+              <div className={`modern-field-container is-textarea ${focusedField === 'comment' ? 'is-focused is-active' : formData.comment ? 'is-active' : ''}`}>
+                <div className="modern-input-wrapper">
+                  <span className="modern-field-icon" aria-hidden="true">💬</span>
+                  <textarea 
+                    name="comment" 
+                    value={formData.comment} 
+                    onChange={handleTextChange} 
+                    onFocus={() => setFocusedField('comment')}
+                    onBlur={() => setFocusedField(null)}
+                    className="modern-field-input" 
+                    required
+                    rows={3}
+                    aria-label="Comment"
+                  />
+                  <label className="modern-floating-label">
+                    Comment <span className="modern-star-pill">*</span>
+                  </label>
+                </div>
+              </div>
 
               <button type="submit" className="btn-primary">Submit Review</button>
             </form>
@@ -1087,4 +1517,4 @@ export default function App() {
       
     </div>
   );
-} 
+}

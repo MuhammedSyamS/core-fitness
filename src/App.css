@@ -351,6 +351,129 @@ button, input, textarea {
   color: var(--ink-faint);
 }
 
+/* ==========================================================
+   Modern Outlined Floating Input Fields
+   ========================================================== */
+
+.modern-field-container {
+  position: relative;
+  margin-bottom: 1.35rem;
+  width: 100%;
+}
+
+.modern-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.modern-field-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 1.15rem;
+  pointer-events: none;
+  z-index: 2;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modern-field-container.is-textarea .modern-field-icon {
+  top: 1.15rem;
+  transform: none;
+}
+
+.modern-field-input {
+  width: 100%;
+  padding: 0.95rem 1rem 0.95rem 2.85rem;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  color: var(--ink);
+  font-family: inherit;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+textarea.modern-field-input {
+  height: 110px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.modern-field-input:hover {
+  border-color: #cbd5e1;
+}
+
+.modern-field-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3.5px rgba(255, 68, 51, 0.12);
+  background: #ffffff;
+}
+
+.modern-floating-label {
+  position: absolute;
+  left: 2.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #64748b;
+  font-size: 0.93rem;
+  font-weight: 500;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.modern-field-container.is-textarea .modern-floating-label {
+  top: 1.15rem;
+  transform: none;
+}
+
+/* When field is active (focused or has content) */
+.modern-field-container.is-active .modern-floating-label {
+  top: -10px;
+  left: 0.95rem;
+  transform: none;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: #ffffff;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+.modern-field-container.is-focused .modern-floating-label {
+  color: var(--accent);
+}
+
+.modern-field-container.is-focused .modern-field-icon {
+  color: var(--accent);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.modern-field-container.is-textarea.is-focused .modern-field-icon {
+  transform: scale(1.08);
+}
+
+.modern-star-pill {
+  color: #ff4433;
+  font-weight: 800;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-block;
+  margin-left: 2px;
+}
+
 textarea.field {
   height: 100px;
   resize: vertical;
@@ -849,4 +972,274 @@ textarea.field {
     color: #94a3b8;
     font-style: italic;
   }
+}
+
+/* ==========================================================
+   Admin Category Management Styles
+   ========================================================== */
+
+.category-mgmt-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+.category-mgmt-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.category-mgmt-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.category-count-badge {
+  font-size: 0.75rem;
+  background: var(--accent-tint);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.category-mgmt-desc {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.btn-add-category {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(255, 68, 51, 0.25);
+}
+
+.btn-add-category:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255, 68, 51, 0.35);
+}
+
+.category-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.category-card-item {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.category-card-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+
+.category-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.category-card-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px;
+}
+
+.category-card-key {
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.category-card-desc {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin: 0;
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.category-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.6rem;
+}
+
+.btn-category-action {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-category-action:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btn-category-delete {
+  color: #ef4444;
+  background: #fef2f2;
+  border-color: #fee2e2;
+}
+
+.btn-category-delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* Modal for Add / Edit Category */
+.category-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1.25rem;
+  animation: fadeInModal 0.2s ease forwards;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.category-modal-box {
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lift);
+  width: 100%;
+  max-width: 480px;
+  padding: 1.75rem;
+  position: relative;
+  animation: slideUpModal 0.2s ease forwards;
+}
+
+@keyframes slideUpModal {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.category-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.category-modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.category-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.category-modal-close:hover {
+  color: var(--ink);
+}
+
+.category-form-group {
+  margin-bottom: 1rem;
+}
+
+.category-form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+}
+
+.category-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
 }
